@@ -1,5 +1,7 @@
 {
   "name": "Tavlo: The Digital Notebook",
   "description": "An AI-powered digital notebook inspired by the reMarkable tablet. Students can write, get assistance from a built-in AI tutor for various subjects, and receive guidance on their work.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
