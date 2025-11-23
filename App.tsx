@@ -1,7 +1,6 @@
 
 
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import EditorView from './components/EditorView';
@@ -27,6 +26,7 @@ import StudentProfileView from './components/StudentProfileView';
 import { generateLessonPlan, getFeedbackSuggestions, LessonPlan, Feedback, generateAdaptiveGame, recognizeHandwriting } from './services/geminiService';
 import LessonPlanModal from './components/LessonPlanModal';
 import FeedbackAssistantModal from './components/FeedbackAssistantModal';
+import LoginView from './components/LoginView';
 
 
 type ViewMode = 'student' | 'teacher';
@@ -38,7 +38,6 @@ export interface StudentProgress {
 }
 
 const App: React.FC = () => {
-  // FIX: Explicitly typed the `subjectContent` state to ensure correct type inference, resolving an error where its properties were being treated as 'unknown'.
   const [subjectContent, setSubjectContent] = useState<Record<string, SubjectData>>(initialSubjectContent);
   const [currentSubject, setCurrentSubject] = useState<string>("Hjem");
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(subjectContent["Hjem"].notes[0].id);
@@ -109,6 +108,9 @@ const App: React.FC = () => {
   // State for AI Game Generation
   const [isGeneratingGame, setIsGeneratingGame] = useState(false);
   const [gameGenerationError, setGameGenerationError] = useState<string | null>(null);
+
+  // Student Login State
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
 
   const isGroupGameActive = !!activeGroupGame;
@@ -226,7 +228,8 @@ const App: React.FC = () => {
 
     Object.entries(subjectContent).forEach(([subject, data]) => {
         if (subject === "Hjem" || subject === "Timeplan") return;
-        data.notes.forEach(note => {
+        // FIX: Added type assertion for `data` to address potential `unknown` type from `Object.entries` in some TS configurations.
+        (data as SubjectData).notes.forEach(note => {
             const inTitle = note.title.toLowerCase().includes(lowerCaseQuery);
             const inAnswer = note.studentAnswer.toLowerCase().includes(lowerCaseQuery);
             if (inTitle || inAnswer) {
@@ -552,7 +555,19 @@ const App: React.FC = () => {
     setCurrentNoteId(newNote.id);
   }
 
-  const handleSubmitNote = (noteId: string) => {
+  const handleSubmitNote = async (noteId: string) => {
+    const noteToSubmit = subjectContent[currentSubject]?.notes.find(n => n.id === noteId);
+    if (!noteToSubmit) return;
+
+    let recognizedText: string | undefined = undefined;
+    if (noteToSubmit.drawingData) {
+        try {
+            recognizedText = await recognizeHandwriting(noteToSubmit.drawingData);
+        } catch (error) {
+            console.error("Failed to recognize handwriting on submission:", error);
+        }
+    }
+
     setSubjectContent(prevContent => {
       const currentSubjectData = prevContent[currentSubject];
       if (!currentSubjectData) return prevContent;
@@ -560,7 +575,16 @@ const App: React.FC = () => {
       const noteIndex = currentSubjectData.notes.findIndex(n => n.id === noteId);
       if (noteIndex > -1) {
         const updatedNotes = [...currentSubjectData.notes];
-        updatedNotes[noteIndex] = { ...updatedNotes[noteIndex], isSubmitted: true, date: new Date().toISOString().split('T')[0] };
+        const submittedNote: Note = {
+            ...updatedNotes[noteIndex], 
+            isSubmitted: true, 
+            date: new Date().toISOString().split('T')[0]
+        };
+        if (recognizedText !== undefined) {
+            submittedNote.recognizedText = recognizedText;
+        }
+        updatedNotes[noteIndex] = submittedNote;
+        
         return { ...prevContent, [currentSubject]: { ...currentSubjectData, notes: updatedNotes } };
       }
       return prevContent;
@@ -663,6 +687,17 @@ const App: React.FC = () => {
     setTeacherSelectedClassId(classId);
     setTeacherSelectedSubject(null); // Reset subject when class changes
   };
+  
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+  
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setIsProfileViewOpen(false);
+    setCurrentSubject("Hjem");
+    setCurrentNoteId(subjectContent["Hjem"].notes[0].id);
+  };
 
   const documentContext = currentNote ? currentNote.studentAnswer : '';
   const navigateBackToSubject = () => {
@@ -687,11 +722,17 @@ const App: React.FC = () => {
     setIsProfileViewOpen(false);
     setTeacherSelectedClassId(null);
     setTeacherSelectedSubject(null);
+    if (newView === 'student') {
+        setIsLoggedIn(false);
+    }
   }
 
   const renderStudentView = () => {
+    if (!isLoggedIn) {
+        return <LoginView onLoginSuccess={handleLogin} />;
+    }
     if (isProfileViewOpen) {
-        return <StudentProfileView student={students[0]} />;
+        return <StudentProfileView student={students[0]} onLogout={handleLogout} />;
     }
      if (searchQuery) {
         return <SearchView 
@@ -800,16 +841,16 @@ const App: React.FC = () => {
         }
     };
 
-  const showBackButton = (viewMode === 'student' && (isProfileViewOpen || !!searchQuery || ((!!currentNoteId || isGroupGameActive) && currentSubject !== "Hjem" && currentSubject !== "Timeplan"))) || (viewMode === 'teacher' && !!selectedStudentId);
-
-  const isSearchVisible = viewMode === 'student' && !isLiveSessionActive && !isGroupGameActive && !isProfileViewOpen;
+  const showBackButton = (viewMode === 'student' && isLoggedIn && (isProfileViewOpen || !!searchQuery || ((!!currentNoteId || isGroupGameActive) && currentSubject !== "Hjem" && currentSubject !== "Timeplan"))) || (viewMode === 'teacher' && !!selectedStudentId);
+  const showHeader = (viewMode === 'student' && isLoggedIn) || viewMode === 'teacher';
+  const isSearchVisible = viewMode === 'student' && isLoggedIn && !isLiveSessionActive && !isGroupGameActive && !isProfileViewOpen;
 
   return (
     <div className="bg-stone-200 min-h-screen flex flex-col items-center justify-center p-4 gap-4">
       <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
       <div className="w-full max-w-4xl h-[90vh] max-h-[1200px] bg-black rounded-3xl shadow-2xl p-2 md:p-4 flex flex-col overflow-hidden border-4 border-gray-800">
         <div className="flex-grow bg-stone-100 rounded-2xl flex flex-col relative overflow-hidden">
-          {!isLiveSessionActive && !isGroupGameActive && (
+          {showHeader && !isLiveSessionActive && !isGroupGameActive && (
             <>
               <Menu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} onSelectSubject={handleSelectSubject} activeSubject={currentSubject} />
               <Header 
@@ -831,7 +872,7 @@ const App: React.FC = () => {
 
           {viewMode === 'student' ? renderStudentView() : renderTeacherView()}
 
-          {viewMode === 'student' && currentNote && !isLiveSessionActive && !searchQuery && (
+          {viewMode === 'student' && currentNote && isLoggedIn && !isLiveSessionActive && !searchQuery && (
             <Toolbar 
               onChatClick={() => setIsAiChatOpen(true)} 
               activeTool={activeTool} 
@@ -849,7 +890,7 @@ const App: React.FC = () => {
               onSubmit={() => handleSubmitNote(currentNote.id)}
             />
           )}
-          {viewMode === 'student' && <AiChat isOpen={isAiChatOpen} onClose={() => setIsAiChatOpen(false)} documentContext={documentContext} />}
+          {viewMode === 'student' && isLoggedIn && <AiChat isOpen={isAiChatOpen} onClose={() => setIsAiChatOpen(false)} documentContext={documentContext} />}
           
           <GroupingModal isOpen={isGroupingModalOpen} onClose={() => setIsGroupingModalOpen(false)} topic={groupingTopic} groups={generatedGroups} />
           <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} content={currentNote?.studentAnswer || ''} />

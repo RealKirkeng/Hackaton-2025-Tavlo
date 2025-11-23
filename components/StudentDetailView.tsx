@@ -1,6 +1,8 @@
 
 
-import React from 'react';
+
+
+import React, { useState } from 'react';
 import { Student, Note, SubjectData } from '../data/content';
 import { MagicWandIcon } from './Icons';
 
@@ -40,31 +42,75 @@ const SubjectProgressCard: React.FC<{ subjectName: string; progress: number }> =
     </div>
 );
 
-const NoteFeedbackCard: React.FC<{ note: Note, subject: string, onGetFeedback: () => void }> = ({ note, subject, onGetFeedback }) => (
-    <div className="bg-white p-4 rounded-lg border border-stone-200">
-        <div className="flex justify-between items-start gap-2">
-            <div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">{subject}</span>
-                    {note.isTeacherNote && (
-                        <span className="text-xs bg-sky-100 text-sky-800 font-semibold px-2 py-0.5 rounded-full">Fra Lærer</span>
-                    )}
+const NoteFeedbackCard: React.FC<{ note: Note, subject: string, onGetFeedback: () => void }> = ({ note, subject, onGetFeedback }) => {
+    const [view, setView] = useState<'handwriting' | 'text'>('handwriting');
+    const hasHandwritingToggle = note.drawingData && note.recognizedText;
+
+    return (
+        <div className="bg-white p-4 rounded-lg border border-stone-200">
+            <div className="flex justify-between items-start gap-2">
+                <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">{subject}</span>
+                        {note.isTeacherNote && (
+                            <span className="text-xs bg-sky-100 text-sky-800 font-semibold px-2 py-0.5 rounded-full">Fra Lærer</span>
+                        )}
+                        {note.isSubmitted && (
+                             <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">Levert</span>
+                        )}
+                    </div>
+                    <h4 className="font-semibold text-gray-800 mt-2">{note.title}</h4>
                 </div>
-                <h4 className="font-semibold text-gray-800 mt-2">{note.title}</h4>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{note.studentAnswer}</p>
+                {!note.isTeacherNote && note.isSubmitted && (
+                    <button 
+                        onClick={onGetFeedback}
+                        className="flex items-center gap-2 text-sm px-3 py-1.5 bg-white text-blue-700 rounded-md hover:bg-blue-50 border border-blue-600 transition-colors font-semibold flex-shrink-0"
+                    >
+                        <MagicWandIcon className="w-4 h-4" />
+                        <span>Feedback</span>
+                    </button>
+                )}
             </div>
-            {!note.isTeacherNote && (
-                <button 
-                    onClick={onGetFeedback}
-                    className="flex items-center gap-2 text-sm px-3 py-1.5 bg-white text-blue-700 rounded-md hover:bg-blue-50 border border-blue-600 transition-colors font-semibold flex-shrink-0"
-                >
-                    <MagicWandIcon className="w-4 h-4" />
-                    <span>Feedback</span>
-                </button>
-            )}
+            
+            <div className="mt-3 pt-3 border-t border-stone-200 space-y-4">
+                {note.studentAnswer && note.studentAnswer !== "Skriv svaret ditt her..." && note.studentAnswer !== "Begynn å skrive her..." && (
+                    <div>
+                        <h5 className="text-xs font-semibold text-gray-500 uppercase mb-1">Maskinskrevet svar</h5>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.studentAnswer}</p>
+                    </div>
+                )}
+                
+                {hasHandwritingToggle ? (
+                     <div>
+                        <div className="flex items-center justify-between mb-2">
+                             <h5 className="text-xs font-semibold text-gray-500 uppercase">Håndskrevet svar</h5>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setView('handwriting')} className={`px-3 py-1 text-xs rounded-md font-medium ${view === 'handwriting' ? 'bg-stone-700 text-white' : 'bg-stone-200 text-gray-700 hover:bg-stone-300'}`}>Original</button>
+                                <button onClick={() => setView('text')} className={`px-3 py-1 text-xs rounded-md font-medium ${view === 'text' ? 'bg-stone-700 text-white' : 'bg-stone-200 text-gray-700 hover:bg-stone-300'}`}>Transkribert</button>
+                            </div>
+                        </div>
+
+                        {view === 'handwriting' ? (
+                            <img src={note.drawingData} alt="Student's handwriting" className="w-full h-auto rounded-md border border-stone-300 bg-stone-50" />
+                        ) : (
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap bg-stone-100 p-3 rounded-md border border-stone-200 font-serif">{note.recognizedText}</p>
+                        )}
+                    </div>
+                ) : note.drawingData ? (
+                    <div>
+                        <h5 className="text-xs font-semibold text-gray-500 uppercase mb-1">Håndskrevet svar</h5>
+                        <img src={note.drawingData} alt="Student's handwriting" className="w-full h-auto rounded-md border border-stone-300 bg-stone-50" />
+                        {note.isSubmitted && !note.recognizedText && <p className="text-xs text-amber-700 mt-1">Tekstgjenkjenning var ikke tilgjengelig for denne innleveringen.</p>}
+                    </div>
+                ) : null }
+
+                {!note.drawingData && !(note.studentAnswer && note.studentAnswer !== "Skriv svaret ditt her..." && note.studentAnswer !== "Begynn å skrive her...") && (
+                     <p className="text-sm text-gray-500 italic">Ingen svar ble levert.</p>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, subjects, allNotes, onOpenFeedbackModal }) => {

@@ -1,4 +1,4 @@
-// FIX: Import `useEffect` from React to fix the "Cannot find name 'useEffect'" error.
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { Student, ClassStruggle, QuestionSet, Class } from '../data/content';
 import { UsersIcon, FolderIcon, PlayCircleIcon, CloseIcon, LightBulbIcon, PauseIcon, CheckCircleIcon, XCircleIcon, ClipboardListIcon, ChevronDownIcon, BookOpenIcon } from './Icons';

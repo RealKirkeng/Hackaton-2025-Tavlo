@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState } from 'react';
 import { Note, Objective, GroupGame } from '../data/content';
 import { PlusIcon, SparklesIcon, ClipboardIcon, CpuChipIcon, PlayCircleIcon, CheckCircleIcon } from './Icons';
@@ -143,17 +141,8 @@ const TabButton: React.FC<{ isActive: boolean; onClick: () => void; children: Re
     </button>
 );
 
-
-const SubjectView: React.FC<SubjectViewProps> = ({ 
-    subject, notes, objectives, groupGames, onSelectNote, onNewNote, onStartGroupGame, 
-    isKaiVoiceEnabled, objectiveFilters, onObjectiveFilterChange, onStartObjective,
-    onGenerateAdaptiveGame, isGeneratingGame, gameGenerationError
- }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('notes');
-  
-  const sortedNotes = [...notes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
-  const themeColors: { [key: string]: { border: string, bg: string } } = {
+// FIX: Moved themeColors and defaultColor outside of the component to prevent re-creation on each render.
+const themeColors: Record<string, { border: string, bg: string }> = {
     // Matte
     'Geometri': { border: 'border-blue-500', bg: 'bg-blue-500' },
     'Areal': { border: 'border-green-500', bg: 'bg-green-500' },
@@ -175,9 +164,18 @@ const SubjectView: React.FC<SubjectViewProps> = ({
     'Kristendom': { border: 'border-fuchsia-500', bg: 'bg-fuchsia-500' },
     'Islam': { border: 'border-emerald-500', bg: 'bg-emerald-500' },
     'Etikk': { border: 'border-rose-500', bg: 'bg-rose-500' },
-  };
-  const defaultColor = { border: 'border-stone-300', bg: 'bg-stone-300' };
+};
+const defaultColor = { border: 'border-stone-300', bg: 'bg-stone-300' };
 
+const SubjectView: React.FC<SubjectViewProps> = ({ 
+    subject, notes, objectives, groupGames, onSelectNote, onNewNote, onStartGroupGame, 
+    isKaiVoiceEnabled, objectiveFilters, onObjectiveFilterChange, onStartObjective,
+    onGenerateAdaptiveGame, isGeneratingGame, gameGenerationError
+ }) => {
+  const [activeTab, setActiveTab] = useState<Tab>('notes');
+  
+  const sortedNotes = [...notes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
   const renderContent = () => {
     switch (activeTab) {
         case 'notes':
@@ -207,9 +205,9 @@ const SubjectView: React.FC<SubjectViewProps> = ({
                 </>
             );
         case 'objectives':
-             // FIX: Explicitly typing parameters in array methods ensures correct type inference and prevents errors when properties are used as index keys.
              const allThemes = Array.from(new Set(objectives.map((obj: Objective) => obj.theme)));
-             const activeFilters = objectiveFilters[subject] || [];
+             // FIX: Add type assertion to `subject` to prevent "Type 'unknown' cannot be used as an index type." error under strict TypeScript configurations.
+             const activeFilters = objectiveFilters[subject as string] || [];
              const filteredObjectives = objectives.filter((obj: Objective) => 
                  activeFilters.length === 0 || activeFilters.includes(obj.theme)
              );

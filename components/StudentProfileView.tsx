@@ -1,6 +1,6 @@
 import React from 'react';
 import { Student, Achievement, allAchievements } from '../data/content';
-import { TrophyIcon, StarIcon } from './Icons';
+import { TrophyIcon, StarIcon, LogoutIcon } from './Icons';
 
 // Helper to get initials
 const getInitials = (name: string) => {
@@ -87,9 +87,10 @@ const AchievementCard: React.FC<{ achievement: Achievement, isUnlocked: boolean 
 
 interface StudentProfileViewProps {
     student: Student;
+    onLogout: () => void;
 }
 
-const StudentProfileView: React.FC<StudentProfileViewProps> = ({ student }) => {
+const StudentProfileView: React.FC<StudentProfileViewProps> = ({ student, onLogout }) => {
     const subjects = Object.keys(student.subjectProgress);
 
     return (
@@ -123,7 +124,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ student }) => {
             </div>
             
              {/* Trophies */}
-            <div>
+            <div className="mb-10">
                 <h3 className="font-serif text-2xl text-gray-800 font-semibold mb-4">Troféer</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {allAchievements.map(achieve => (
@@ -134,6 +135,17 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ student }) => {
                         />
                     ))}
                 </div>
+            </div>
+
+            {/* Logout Section */}
+            <div>
+                 <button 
+                    onClick={onLogout}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 border border-red-200 transition-colors font-semibold"
+                >
+                    <LogoutIcon className="w-5 h-5" />
+                    Logg ut
+                </button>
             </div>
         </main>
     );

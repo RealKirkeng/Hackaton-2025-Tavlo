@@ -7,6 +7,7 @@ export interface Note {
   submissions: number;
   totalStudents: number;
   drawingData?: string;
+  recognizedText?: string;
   isTeacherNote?: boolean;
   objectiveId?: string;
   isSubmitted?: boolean;

@@ -1,10 +1,6 @@
 
-
-
-
-
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage, Modality, Blob, CloseEvent, ErrorEvent } from "@google/genai";
 import { MicrophoneIcon } from './Icons';
 
 // Audio utility functions from Gemini API documentation
@@ -59,7 +55,8 @@ function createBlob(data: Float32Array): Blob {
 }
 
 const KaiLiveView: React.FC<{ subject: string }> = ({ subject }) => {
-  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [isSessionActive, setIsSessionActive]
+ = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sessionPromiseRef = useRef<Promise<any> | null>(null);
@@ -93,11 +90,11 @@ const KaiLiveView: React.FC<{ subject: string }> = ({ subject }) => {
     }
     
     if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
-      inputAudioContextRef.current.close();
+      inputAudioContextRef.current.close().catch(console.error);
     }
     
     if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
-      outputAudioContextRef.current.close();
+      outputAudioContextRef.current.close().catch(console.error);
     }
     
     sourcesRef.current.forEach(source => source.stop());
@@ -108,25 +105,28 @@ const KaiLiveView: React.FC<{ subject: string }> = ({ subject }) => {
 
   const startSession = async () => {
     setError(null);
+    setIsSessionActive(true); // Set active early for better UI feedback
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+      if (!process.env.API_KEY) {
+        throw new Error("API_KEY is not configured.");
+      }
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // FIX: Cast `window` to `any` to allow access to `webkitAudioContext` for cross-browser compatibility.
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      // FIX: Cast `window` to `any` to allow access to `webkitAudioContext` for cross-browser compatibility.
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       nextStartTimeRef.current = 0;
 
       const outputNode = outputAudioContextRef.current.createGain();
+      // FIX: This is the critical connection that enables audio playback.
+      outputNode.connect(outputAudioContextRef.current.destination);
 
       sessionPromiseRef.current = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks: {
           onopen: () => {
-            setIsSessionActive(true);
             const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
             sourceNodeRef.current = source;
             const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
@@ -179,6 +179,7 @@ const KaiLiveView: React.FC<{ subject: string }> = ({ subject }) => {
             stopSession();
           },
           onclose: (e: CloseEvent) => {
+            // This is an expected event when the session is closed, so no error is set.
             console.debug('Gemini Live API connection closed.');
             stopSession();
           },
@@ -193,7 +194,8 @@ const KaiLiveView: React.FC<{ subject: string }> = ({ subject }) => {
       });
     } catch (err) {
         console.error('Failed to start session:', err);
-        setError('Kunne ikke starte samtalen. Sjekk mikrofontillatelser.');
+        setError('Kunne ikke starte samtalen. Sjekk mikrofontillatelser og API-nøkkel.');
+        stopSession(); // Clean up on initialization failure
     }
   };
 
