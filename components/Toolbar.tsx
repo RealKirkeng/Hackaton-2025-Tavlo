@@ -1,8 +1,10 @@
 
 
 
+
+
 import React from 'react';
-import { PenIcon, EraserIcon, ShareIcon, ChatIcon, CpuChipIcon, CheckCircleIcon } from './Icons';
+import { PenIcon, EraserIcon, ShareIcon, ChatIcon, CpuChipIcon, CheckCircleIcon, MagicWandIcon } from './Icons';
 import { Tool } from '../App';
 
 interface ToolbarProps {
@@ -20,6 +22,8 @@ interface ToolbarProps {
   isTaskNote?: boolean;
   isSubmitted?: boolean;
   onSubmit?: () => void;
+  isCreativeToolsEnabled?: boolean;
+  onOpenCreativeTools?: () => void;
 }
 
 const ToolbarButton: React.FC<{ 
@@ -41,7 +45,11 @@ const ToolbarButton: React.FC<{
   </button>
 );
 
-const Toolbar: React.FC<ToolbarProps> = ({ onChatClick, activeTool, onToolClick, onShareClick, penColor, onPenColorChange, penSize, onPenSizeChange, onRecognizeText, isRecognizingText, hasDrawing, isTaskNote, isSubmitted, onSubmit }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ 
+    onChatClick, activeTool, onToolClick, onShareClick, penColor, onPenColorChange, penSize, onPenSizeChange, 
+    onRecognizeText, isRecognizingText, hasDrawing, isTaskNote, isSubmitted, onSubmit,
+    isCreativeToolsEnabled, onOpenCreativeTools
+}) => {
   const penColors = ['#333333', '#ef4444', '#3b82f6', '#22c55e'];
   const penSizes = [5, 10, 20];
 
@@ -113,6 +121,19 @@ const Toolbar: React.FC<ToolbarProps> = ({ onChatClick, activeTool, onToolClick,
         
         {/* Right side: Action Buttons */}
         <div className="flex items-center gap-1">
+            {isCreativeToolsEnabled && hasDrawing && (
+                <>
+                    <ToolbarButton
+                        onClick={onOpenCreativeTools}
+                        aria-label="Creative Tools"
+                        isActive={false}
+                    >
+                        <MagicWandIcon className="w-6 h-6 text-purple-600" />
+                    </ToolbarButton>
+                    <div className="w-px h-8 bg-stone-300 mx-1"></div>
+                </>
+            )}
+
             {isTaskNote && (
               <>
                 <button

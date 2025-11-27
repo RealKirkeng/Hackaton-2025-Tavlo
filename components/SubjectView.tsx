@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Note, Objective, GroupGame } from '../data/content';
 import { PlusIcon, SparklesIcon, ClipboardIcon, CpuChipIcon, PlayCircleIcon, CheckCircleIcon } from './Icons';
@@ -207,7 +205,7 @@ const SubjectView: React.FC<SubjectViewProps> = ({
         case 'objectives':
              const allThemes = Array.from(new Set(objectives.map((obj: Objective) => obj.theme)));
              // FIX: Add type assertion to `subject` to prevent "Type 'unknown' cannot be used as an index type." error under strict TypeScript configurations.
-             const activeFilters = objectiveFilters[subject as string] || [];
+             const activeFilters = objectiveFilters[subject] || [];
              const filteredObjectives = objectives.filter((obj: Objective) => 
                  activeFilters.length === 0 || activeFilters.includes(obj.theme)
              );

@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import EditorView from './components/EditorView';
@@ -27,6 +29,7 @@ import { generateLessonPlan, getFeedbackSuggestions, LessonPlan, Feedback, gener
 import LessonPlanModal from './components/LessonPlanModal';
 import FeedbackAssistantModal from './components/FeedbackAssistantModal';
 import LoginView from './components/LoginView';
+import CreativeToolsModal from './components/CreativeToolsModal';
 
 
 type ViewMode = 'student' | 'teacher';
@@ -87,6 +90,10 @@ const App: React.FC = () => {
   
   // KAI Voice Assistant State
   const [isKaiVoiceEnabled, setIsKaiVoiceEnabled] = useState<boolean>(true);
+
+  // Creative Tools State (Teacher Toggle & Modal)
+  const [isCreativeToolsEnabled, setIsCreativeToolsEnabled] = useState<boolean>(false);
+  const [isCreativeModalOpen, setIsCreativeModalOpen] = useState<boolean>(false);
 
   // Objective Filter State
   const [objectiveFilters, setObjectiveFilters] = useState<Record<string, string[]>>({});
@@ -472,6 +479,10 @@ const App: React.FC = () => {
   const handleToggleKaiVoice = () => {
     setIsKaiVoiceEnabled(prev => !prev);
   };
+
+  const handleToggleCreativeTools = () => {
+    setIsCreativeToolsEnabled(prev => !prev);
+  }
   
   const handleObjectiveFilterChange = (subject: string, theme: string) => {
     setObjectiveFilters(prev => {
@@ -826,6 +837,8 @@ const App: React.FC = () => {
               onToggleKaiVoice={handleToggleKaiVoice}
               onGenerateLessonPlan={handleGenerateLessonPlan}
               onDistributeNote={handleDistributeNewNote}
+              isCreativeToolsEnabled={isCreativeToolsEnabled}
+              onToggleCreativeTools={handleToggleCreativeTools}
             />;
   }
   
@@ -888,6 +901,8 @@ const App: React.FC = () => {
               isTaskNote={!!currentNote?.objectiveId}
               isSubmitted={!!currentNote?.isSubmitted}
               onSubmit={() => handleSubmitNote(currentNote.id)}
+              isCreativeToolsEnabled={isCreativeToolsEnabled}
+              onOpenCreativeTools={() => setIsCreativeModalOpen(true)}
             />
           )}
           {viewMode === 'student' && isLoggedIn && <AiChat isOpen={isAiChatOpen} onClose={() => setIsAiChatOpen(false)} documentContext={documentContext} />}
@@ -925,6 +940,12 @@ const App: React.FC = () => {
               isLoading={isFeedbackLoading}
               error={feedbackError}
               onGenerate={handleGenerateFeedback}
+          />
+          <CreativeToolsModal 
+            isOpen={isCreativeModalOpen}
+            onClose={() => setIsCreativeModalOpen(false)}
+            drawingData={currentNote?.drawingData || ''}
+            subject={currentSubject}
           />
         </div>
       </div>

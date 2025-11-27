@@ -1,7 +1,9 @@
 
+
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { Student, ClassStruggle, QuestionSet, Class } from '../data/content';
-import { UsersIcon, FolderIcon, PlayCircleIcon, CloseIcon, LightBulbIcon, PauseIcon, CheckCircleIcon, XCircleIcon, ClipboardListIcon, ChevronDownIcon, BookOpenIcon } from './Icons';
+import { UsersIcon, FolderIcon, PlayCircleIcon, CloseIcon, LightBulbIcon, PauseIcon, CheckCircleIcon, XCircleIcon, ClipboardListIcon, ChevronDownIcon, BookOpenIcon, MagicWandIcon } from './Icons';
 import ClassStruggles from './ClassStruggles';
 import { StudentProgress } from '../App';
 
@@ -30,6 +32,8 @@ interface TeacherViewProps {
   onToggleKaiVoice: () => void;
   onGenerateLessonPlan: (subject: string, topic: string, numLessons: number) => void;
   onDistributeNote: (subject: string, title: string, content: string) => void;
+  isCreativeToolsEnabled: boolean;
+  onToggleCreativeTools: () => void;
 }
 
 const getInitials = (name: string) => {
@@ -174,7 +178,7 @@ const TeacherView: React.FC<TeacherViewProps> = (props) => {
     isLiveSessionActive, questionSets, onStartLiveSession, onEndLiveSession, 
     studentProgress, activeQuestionSet, isSessionPaused, collectiveStruggle, 
     onPauseSession, onResumeSession, isKaiVoiceEnabled, onToggleKaiVoice, onGenerateLessonPlan,
-    onDistributeNote
+    onDistributeNote, isCreativeToolsEnabled, onToggleCreativeTools
   } = props;
   
   const [lessonSubject, setLessonSubject] = useState(selectedSubject || 'Matte');
@@ -403,24 +407,50 @@ const TeacherView: React.FC<TeacherViewProps> = (props) => {
             
             <div>
                 <h3 className="text-xl font-bold text-gray-800 mb-4">Innstillinger</h3>
-                <div className="bg-white p-4 rounded-lg border border-stone-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h4 className="font-semibold text-gray-800">KAI Stemmeassistent</h4>
-                            <p className="text-sm text-gray-500">Tillat elever å snakke med KAI for hjelp.</p>
-                        </div>
-                        <button
-                            onClick={onToggleKaiVoice}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                isKaiVoiceEnabled ? 'bg-blue-600' : 'bg-gray-200'
-                            }`}
-                        >
-                            <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    isKaiVoiceEnabled ? 'translate-x-6' : 'translate-x-1'
+                <div className="space-y-4">
+                    <div className="bg-white p-4 rounded-lg border border-stone-200">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="font-semibold text-gray-800">KAI Stemmeassistent</h4>
+                                <p className="text-sm text-gray-500">Tillat elever å snakke med KAI for hjelp.</p>
+                            </div>
+                            <button
+                                onClick={onToggleKaiVoice}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                    isKaiVoiceEnabled ? 'bg-blue-600' : 'bg-gray-200'
                                 }`}
-                            />
-                        </button>
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        isKaiVoiceEnabled ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border border-stone-200">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <MagicWandIcon className="w-5 h-5 text-purple-600" />
+                                    <h4 className="font-semibold text-gray-800">Kreative Verktøy (Bilde/Video)</h4>
+                                </div>
+                                <p className="text-sm text-gray-500">La elever generere bilder og video fra tegninger.</p>
+                            </div>
+                            <button
+                                onClick={onToggleCreativeTools}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                    isCreativeToolsEnabled ? 'bg-purple-600' : 'bg-gray-200'
+                                }`}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        isCreativeToolsEnabled ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

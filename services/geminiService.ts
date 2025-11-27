@@ -1,5 +1,7 @@
 
 
+
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Note, Objective, GroupGame } from '../data/content';
 
@@ -267,5 +269,83 @@ export async function recognizeHandwriting(imageDataUrl: string): Promise<string
     } catch (error) {
         console.error("Error recognizing handwriting:", error);
         throw new Error("Kunne ikke gjenkjenne håndskriften.");
+    }
+}
+
+export async function generateImageFromSketch(imageDataUrl: string, prompt: string, subject: string): Promise<string> {
+    const base64Data = imageDataUrl.substring('data:image/png;base64,'.length);
+    
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: {
+                parts: [
+                    {
+                        text: `Transform this sketch into a high-quality, colorful illustration. Context: The subject is ${subject}. ${prompt}`
+                    },
+                    {
+                        inlineData: {
+                            mimeType: 'image/png',
+                            data: base64Data
+                        }
+                    }
+                ]
+            },
+            config: {
+                imageConfig: {
+                    aspectRatio: "1:1",
+                    imageSize: "1K"
+                }
+            }
+        });
+
+        for (const part of response.candidates![0].content.parts) {
+            if (part.inlineData) {
+                return `data:image/png;base64,${part.inlineData.data}`;
+            }
+        }
+        throw new Error("No image generated");
+    } catch (error) {
+        console.error("Error generating image from sketch:", error);
+        throw new Error("Kunne ikke generere bilde.");
+    }
+}
+
+export async function generateVideoFromSketch(imageDataUrl: string, prompt: string): Promise<string> {
+    const base64Data = imageDataUrl.substring('data:image/png;base64,'.length);
+    
+    try {
+        // Veo requires user-selected API key, assuming wrapper handles check, 
+        // but explicit instantiation with current key is good practice.
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        let operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: prompt,
+            image: {
+                imageBytes: base64Data,
+                mimeType: 'image/png'
+            },
+            config: {
+                numberOfVideos: 1,
+                resolution: '720p',
+                aspectRatio: '16:9'
+            }
+        });
+
+        while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            operation = await ai.operations.getVideosOperation({operation: operation});
+        }
+        
+        const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
+        if (!videoUri) throw new Error("No video URI in response");
+        
+        // Return URL with key appended for fetching
+        return `${videoUri}&key=${process.env.API_KEY}`;
+    } catch (error) {
+        console.error("Error generating video:", error);
+        throw new Error("Kunne ikke generere video.");
     }
 }
